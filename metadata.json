@@ -1,0 +1,6 @@
+{
+  "name": "AURA 3D AI Creative Studio",
+  "description": "Next-generation 3D spatial AI image generator and digital art studio with prompt enhancement, image-to-image synthesis, and community gallery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
