@@ -156,15 +156,11 @@ Navigate into the project:
 cd aura-3d-ai-creative-studio
 ```
 
----
-
 ### 2. Install Dependencies
 
 ```bash
 npm install
 ```
-
----
 
 ### 3. Configure Environment Variables
 
@@ -195,7 +191,7 @@ STORAGE_PROVIDER="local"
 
 ## ▶️ Run the Application
 
-Start the development server:
+Start the application with:
 
 ```bash
 npm run dev
@@ -213,7 +209,7 @@ http://localhost:3000
 
 AURA Creative Studio uses **Neon PostgreSQL** for persistent application data.
 
-The application automatically initializes the required tables, including:
+The application automatically initializes the required tables:
 
 ```text
 generations
@@ -237,7 +233,7 @@ The `generations` table stores information such as:
 * Views
 * Source type
 
-If Neon is unavailable, the application can fall back to local JSON persistence during development.
+If Neon is unavailable, the application can fall back to local JSON persistence.
 
 ---
 
@@ -267,9 +263,7 @@ Personal Gallery   Public Gallery
 
 ## 🔐 Security
 
-The project is designed with environment-based configuration for sensitive credentials.
-
-### Important
+The project uses environment variables to protect sensitive credentials.
 
 Do not expose:
 
@@ -281,7 +275,7 @@ Database passwords
 
 Do not upload `.env` to GitHub.
 
-Add this to `.gitignore`:
+Add the following to `.gitignore`:
 
 ```gitignore
 .env
@@ -292,46 +286,6 @@ node_modules/
 ```
 
 If an API key or database password is accidentally exposed, revoke or rotate it immediately.
-
----
-
-## 🌟 Future Improvements
-
-Planned improvements can include:
-
-* User authentication
-* Advanced image editing
-* Image-to-image generation
-* More AI image providers
-* Cloud image storage
-* Advanced search and filtering
-* User profiles
-* Collections
-* Download/export options
-* AI-powered image variations
-* Subscription and credit system
-* Admin dashboard
-* Analytics dashboard
-
----
-
-## 📸 Screenshots
-
-Add your application screenshots here:
-
-```md
-![AURA Creative Studio](./screenshots/home.png)
-```
-
-You can add screenshots of:
-
-* Home page
-* Image generation interface
-* Generated artwork
-* Gallery
-* Public gallery
-* Prompt enhancement
-* User dashboard
 
 ---
 
