@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ActiveTab, UserProfile, UserCredits } from '../types';
-import { Sparkles, Layers, Compass, Grid, User, ChevronDown, Check, Zap, LogOut, LogIn, Trash2, RefreshCw } from 'lucide-react';
+import { Sparkles, Layers, Compass, Grid, User, ChevronDown, Check, Zap, LogOut, LogIn, Trash2, RefreshCw, Home } from 'lucide-react';
 import { isClerkConfigured } from '../lib/clerkConfig';
 import { ClerkUserNav } from './ClerkUserNav';
 import { getUserCredits, refillCredits } from '../lib/creditsManager';
@@ -37,7 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   const navItems = [
-    { id: 'landing' as ActiveTab, label: 'Overview', icon: null },
+    { id: 'landing' as ActiveTab, label: 'Overview', icon: Home },
     { id: 'studio' as ActiveTab, label: 'Studio', icon: Sparkles, badge: 'AI' },
     { id: 'explore' as ActiveTab, label: 'Explore', icon: Compass },
     { id: 'gallery' as ActiveTab, label: 'My Gallery', icon: Grid },

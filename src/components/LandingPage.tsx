@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Hero3DCanvas } from './Hero3DCanvas';
 import { Generation, ActiveTab } from '../types';
-import { Sparkles, ArrowRight, Wand2, Eye, Compass, Cpu, Sliders, Shield, Copy, Check } from 'lucide-react';
+import { Sparkles, ArrowRight, Wand2, Eye, Compass, Cpu, Sliders, Shield, Copy, Check, PenTool, Layers, Share2 } from 'lucide-react';
 
 interface LandingPageProps {
   setActiveTab: (tab: ActiveTab) => void;
@@ -81,9 +81,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="lg:col-span-6 z-10">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#eeece5] border border-[#dedad0] text-xs font-mono text-[#434b58] mb-6">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#3052ff]" />
-                <span className="font-semibold uppercase tracking-wider text-[11px]">Generative 3D Studio</span>
+                <span className="font-semibold tracking-wider text-xs">Generative 3D Studio</span>
                 <span className="text-[#a0a8b4]">/</span>
-                <span className="text-[#677182]">v2.4 Spatial Release</span>
+                <span className="text-[#677182] text-xs">v2.4 Spatial Release</span>
               </div>
 
               <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#15181e] tracking-tight leading-[1.08] mb-6">
@@ -116,7 +116,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <button
                   id="hero-explore-gallery-btn"
                   onClick={() => setActiveTab('explore')}
-                  className="flex items-center justify-center gap-2 px-6 py-3.5 bg-[#f0eee7] hover:bg-[#e4e1d7] text-[#1c2128] text-sm font-medium rounded-full border border-[#dedad0] transition-colors cursor-pointer"
+                  className="flex items-center justify-center gap-2 px-6 py-3.5 bg-transparent hover:bg-[#eae8e0] text-[#424b5a] hover:text-[#171a21] text-sm font-medium rounded-full border border-[#d5d0c4] transition-colors cursor-pointer"
                 >
                   <Compass className="w-4 h-4 text-[#5c6577]" />
                   <span>Explore Gallery</span>
@@ -152,7 +152,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <span className="w-2 h-2 rounded-full bg-[#3052ff]" />
                     <span className="text-xs font-semibold text-[#181b22]">Tactile Depth Engine</span>
                   </div>
-                  <p className="text-[11px] text-[#616b7d] leading-relaxed">
+                  <p className="text-xs text-[#525b6c] leading-relaxed">
                     Interactive perspective cards and WebGL viewport calculate ray-traced spatial depth in real-time.
                   </p>
                 </div>
@@ -178,7 +178,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="max-w-3xl mx-auto text-center mb-12">
-            <span className="text-xs font-mono font-bold tracking-widest text-[#3052ff] uppercase mb-3 inline-block">
+            <span className="text-xs font-mono font-bold tracking-wider text-[#3052ff] mb-3 inline-block">
               Intelligent Prompt Augmentation
             </span>
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#15181e] tracking-tight">
@@ -193,17 +193,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-[#dedad0] shadow-spatial-lg p-6 sm:p-8">
             
             {/* Quick Sample Selector */}
-            <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-2">
-              <span className="text-xs text-[#6c7688] font-medium whitespace-nowrap">Try an idea:</span>
-              {samplePrompts.map((item) => (
-                <button
-                  key={item.title}
-                  onClick={() => handleRunDemoEnhancement(item.text)}
-                  className="px-3 py-1 text-xs font-medium rounded-full bg-[#f3f1ec] hover:bg-[#e7e4db] text-[#343b48] border border-[#dedad0] transition-colors whitespace-nowrap cursor-pointer"
-                >
-                  {item.title}
-                </button>
-              ))}
+            <div className="mb-5 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-[#6c7688] font-medium shrink-0">Try an idea:</span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {samplePrompts.map((item) => (
+                  <button
+                    key={item.title}
+                    onClick={() => handleRunDemoEnhancement(item.text)}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full bg-[#f3f1ec] hover:bg-[#e7e4db] text-[#343b48] border border-[#dedad0] transition-colors cursor-pointer leading-none"
+                  >
+                    {item.title}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
@@ -286,66 +288,105 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="max-w-2xl mb-16">
-            <span className="text-xs font-mono font-bold tracking-widest text-[#3052ff] uppercase mb-3 inline-block">
+            <span className="text-xs font-mono font-bold tracking-wider text-[#3052ff] mb-3 inline-block">
               Creative Workflow
             </span>
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#15181e] tracking-tight">
               An intuitive path from vision to masterpiece.
             </h2>
+            <p className="mt-3 text-base text-[#5a6475]">
+              Four seamless steps that take you from initial raw thought to professional, gallery-grade spatial imagery.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
             {/* Step 1 */}
-            <div className="p-6 rounded-3xl bg-white border border-[#dedad0] shadow-spatial hover:shadow-spatial-lg transition-all duration-300">
-              <div className="w-10 h-10 rounded-2xl bg-[#f3f1eb] text-[#1c2128] font-mono text-xs font-bold flex items-center justify-center mb-5 border border-[#dedad0]">
-                01
+            <div className="p-6 rounded-3xl bg-white border border-[#dedad0] shadow-spatial hover:shadow-spatial-lg transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#f3f1eb] text-[#1c2128] font-mono text-xs font-bold flex items-center justify-center border border-[#dedad0]">
+                    01
+                  </div>
+                  <PenTool className="w-4 h-4 text-[#8a94a6]" />
+                </div>
+                <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
+                  Describe Your Vision
+                </h3>
+                <p className="text-sm text-[#5d6677] leading-relaxed">
+                  Enter your creative concept in natural language, whether a simple noun phrase or a detailed photographic brief.
+                </p>
               </div>
-              <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
-                Describe Your Vision
-              </h3>
-              <p className="text-sm text-[#5d6677] leading-relaxed">
-                Enter your creative concept in natural language, whether a simple noun phrase or a detailed photographic brief.
-              </p>
+              <div className="mt-6 pt-3 border-t border-[#f0eee7] flex items-center gap-1.5 text-xs text-[#717b8c] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3052ff]" />
+                <span>Text Prompting</span>
+              </div>
             </div>
 
             {/* Step 2 */}
-            <div className="p-6 rounded-3xl bg-white border border-[#dedad0] shadow-spatial hover:shadow-spatial-lg transition-all duration-300">
-              <div className="w-10 h-10 rounded-2xl bg-[#3052ff]/10 text-[#3052ff] font-mono text-xs font-bold flex items-center justify-center mb-5 border border-[#3052ff]/20">
-                02
+            <div className="p-6 rounded-3xl bg-white border border-[#dedad0] shadow-spatial hover:shadow-spatial-lg transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#3052ff]/10 text-[#3052ff] font-mono text-xs font-bold flex items-center justify-center border border-[#3052ff]/20">
+                    02
+                  </div>
+                  <Wand2 className="w-4 h-4 text-[#3052ff]" />
+                </div>
+                <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
+                  Enhance with AI
+                </h3>
+                <p className="text-sm text-[#5d6677] leading-relaxed">
+                  Click Enhance to have Gemini automatically expand your prompt with lighting, framing, lens optics, and rich micro-textures.
+                </p>
               </div>
-              <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
-                Enhance with AI
-              </h3>
-              <p className="text-sm text-[#5d6677] leading-relaxed">
-                Click Enhance to have Gemini automatically expand your prompt with lighting, framing, lens optics, and rich micro-textures.
-              </p>
+              <div className="mt-6 pt-3 border-t border-[#f0eee7] flex items-center gap-1.5 text-xs text-[#3052ff] font-mono font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3052ff]" />
+                <span>Gemini Flash Co-Pilot</span>
+              </div>
             </div>
 
             {/* Step 3 */}
-            <div className="p-6 rounded-3xl bg-white border border-[#dedad0] shadow-spatial hover:shadow-spatial-lg transition-all duration-300">
-              <div className="w-10 h-10 rounded-2xl bg-[#f3f1eb] text-[#1c2128] font-mono text-xs font-bold flex items-center justify-center mb-5 border border-[#dedad0]">
-                03
+            <div className="p-6 rounded-3xl bg-white border border-[#dedad0] shadow-spatial hover:shadow-spatial-lg transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#f3f1eb] text-[#1c2128] font-mono text-xs font-bold flex items-center justify-center border border-[#dedad0]">
+                    03
+                  </div>
+                  <Cpu className="w-4 h-4 text-[#8a94a6]" />
+                </div>
+                <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
+                  Neural Generation
+                </h3>
+                <p className="text-sm text-[#5d6677] leading-relaxed">
+                  Experience multi-stage progressive generation powered by Gemini Flash Image, outputting up to 4K ultra clarity.
+                </p>
               </div>
-              <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
-                Neural Generation
-              </h3>
-              <p className="text-sm text-[#5d6677] leading-relaxed">
-                Experience multi-stage progressive generation powered by Gemini Flash Image, outputting up to 4K ultra clarity.
-              </p>
+              <div className="mt-6 pt-3 border-t border-[#f0eee7] flex items-center gap-1.5 text-xs text-[#717b8c] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3052ff]" />
+                <span>Ultra 4K Synth</span>
+              </div>
             </div>
 
             {/* Step 4 */}
-            <div className="p-6 rounded-3xl bg-white border border-[#dedad0] shadow-spatial hover:shadow-spatial-lg transition-all duration-300">
-              <div className="w-10 h-10 rounded-2xl bg-[#f3f1eb] text-[#1c2128] font-mono text-xs font-bold flex items-center justify-center mb-5 border border-[#dedad0]">
-                04
+            <div className="p-6 rounded-3xl bg-white border border-[#dedad0] shadow-spatial hover:shadow-spatial-lg transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#f3f1eb] text-[#1c2128] font-mono text-xs font-bold flex items-center justify-center border border-[#dedad0]">
+                    04
+                  </div>
+                  <Share2 className="w-4 h-4 text-[#8a94a6]" />
+                </div>
+                <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
+                  Refine, Upscale & Share
+                </h3>
+                <p className="text-sm text-[#5d6677] leading-relaxed">
+                  Create variations, upscale details, download lossless files, or publish to the curated community showcase.
+                </p>
               </div>
-              <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
-                Refine, Upscale & Share
-              </h3>
-              <p className="text-sm text-[#5d6677] leading-relaxed">
-                Create variations, upscale details, download lossless files, or publish to the curated community showcase.
-              </p>
+              <div className="mt-6 pt-3 border-t border-[#f0eee7] flex items-center gap-1.5 text-xs text-[#717b8c] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>Lossless Export</span>
+              </div>
             </div>
 
           </div>
@@ -484,7 +525,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         setActiveTab('studio');
                       }
                     }}
-                    className="text-[11px] font-semibold text-[#3052ff] hover:text-[#1830b8] flex items-center gap-1 transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 min-h-[32px] text-xs font-semibold text-[#3052ff] hover:text-white bg-[#f0f4ff] hover:bg-[#3052ff] border border-[#d6e0ff] hover:border-[#3052ff] rounded-xl transition-all duration-200 cursor-pointer"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Remix</span>
