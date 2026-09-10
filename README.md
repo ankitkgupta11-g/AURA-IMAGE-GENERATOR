@@ -4,6 +4,14 @@
 
 > 🎨 **Turn your imagination into visual art with AI.**
 
+## 🌐 Live Demo
+
+🚀 **AURA Creative Studio is live on Vercel!**
+
+👉 **[Open AURA Creative Studio](https://aura-image-generator-coral.vercel.app/)**
+
+**Live URL:** https://aura-image-generator-coral.vercel.app/
+
 ---
 
 ## 🚀 Features
@@ -64,12 +72,14 @@ Designed to provide a smooth experience across desktop, tablet, and mobile devic
 
 * React
 * TypeScript
-* Modern CSS / Responsive UI
+* Modern CSS
+* Responsive UI
 
 ### Backend
 
 * Node.js
 * TypeScript
+* API Routes
 
 ### AI
 
@@ -85,6 +95,10 @@ Designed to provide a smooth experience across desktop, tablet, and mobile devic
 
 * Local filesystem persistence
 * Optional external storage provider support
+
+### Deployment
+
+* Vercel
 
 ---
 
@@ -291,7 +305,13 @@ If an API key or database password is accidentally exposed, revoke or rotate it 
 
 ## 🌐 Deployment
 
-AURA Creative Studio can be deployed using platforms such as:
+AURA Creative Studio is deployed on **Vercel**.
+
+### Live Application
+
+👉 **https://aura-image-generator-coral.vercel.app/**
+
+The project can also be deployed using platforms such as:
 
 * Vercel
 * Render
@@ -344,6 +364,7 @@ Add an appropriate open-source license if you plan to distribute the project pub
 **Ankit Kumar**
 
 Computer Science Engineering Student
+
 Interested in AI, Web Development, Data Analytics, and Generative AI.
 
 ---
