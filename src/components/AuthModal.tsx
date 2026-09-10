@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { X, Check, User, Sparkles } from 'lucide-react';
+import { X, Check, User, Sparkles, Trash2, ShieldCheck } from 'lucide-react';
+import { isClerkConfigured } from '../lib/clerkConfig';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: UserProfile;
   onSelectUser: (user: UserProfile) => void;
+  onNavigateToAuth?: () => void;
+  onOpenDeleteAccount?: () => void;
 }
 
 const PRESET_USERS: UserProfile[] = [
@@ -44,6 +47,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   currentUser,
   onSelectUser,
+  onNavigateToAuth,
+  onOpenDeleteAccount,
 }) => {
   const [customName, setCustomName] = useState('');
   const [customRole, setCustomRole] = useState('Digital Creator');
@@ -87,9 +92,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </h3>
         </div>
 
-        <p className="text-xs text-[#636d7e] mb-6">
-          Switch user profiles or create a custom identity to manage private collections and community posts.
+        <p className="text-xs text-[#636d7e] mb-4">
+          Switch creator profiles, create a custom profile, or access full authentication.
         </p>
+
+        {/* Clerk Authentication Action */}
+        {onNavigateToAuth && (
+          <div className="w-full mb-4 p-3 rounded-2xl bg-[#f0f4ff] border border-[#d2defc] flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-[#2845d6]">
+              <ShieldCheck className="w-4 h-4 text-[#3052ff]" />
+              <div>
+                <span className="font-semibold block">Clerk Authentication</span>
+                <span className="text-[11px] text-[#4f67e0]">
+                  {isClerkConfigured ? 'Ready & Connected' : 'Google, GitHub & Email SSO'}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                onClose();
+                onNavigateToAuth();
+              }}
+              className="py-1.5 px-3 rounded-xl bg-[#3052ff] hover:bg-[#2040e0] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            >
+              Open Auth
+            </button>
+          </div>
+        )}
 
         {/* Preset profiles */}
         <div className="flex flex-col gap-2.5 mb-6">
@@ -161,6 +190,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             Activate Custom Identity
           </button>
         </form>
+
+        {/* Delete Account Option */}
+        {onOpenDeleteAccount && !currentUser.isGuest && currentUser.email && (
+          <div className="mt-6 pt-4 border-t border-[#ece8df] flex items-center justify-between">
+            <div>
+              <div className="text-xs font-semibold text-[#16191f]">Account Data & Removal</div>
+              <div className="text-[11px] text-[#717c8d]">Permanently delete profile and records</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenDeleteAccount();
+              }}
+              className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Account</span>
+            </button>
+          </div>
+        )}
 
       </div>
     </div>

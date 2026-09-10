@@ -41,6 +41,9 @@ export interface UserProfile {
   creationsCount: number;
   favoritesCount: number;
   joinedDate?: string;
+  token?: string;
+  isGuest?: boolean;
+  provider?: string;
 }
 
 export interface GenerationConfig {
@@ -61,4 +64,44 @@ export interface GenerationStage {
   description: string;
 }
 
-export type ActiveTab = 'landing' | 'studio' | 'gallery' | 'explore' | 'dashboard' | 'features' | 'about';
+export interface PromptVersion {
+  id: string;
+  timestamp: string;
+  prompt: string;
+  enhancedPrompt?: string;
+  negativePrompt?: string;
+  style: string;
+  aspectRatio: AspectRatio;
+  resultImageUrl?: string;
+  sourceType?: SourceType;
+  referenceImagePreview?: string;
+}
+
+export interface MoodboardCollection {
+  id: string;
+  name: string;
+  description?: string;
+  coverImage?: string;
+  colorTheme?: string;
+  generationIds: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface UserCredits {
+  remaining: number;
+  totalDaily: number;
+  lastRefreshed: string;
+  tier: 'Creator Free' | 'Pro Studio' | 'Enterprise';
+}
+
+export interface InpaintParams {
+  originalImageUrl: string;
+  maskDataUrl: string;
+  inpaintPrompt: string;
+  style?: string;
+  userId?: string;
+  userName?: string;
+}
+
+export type ActiveTab = 'landing' | 'studio' | 'gallery' | 'explore' | 'dashboard' | 'features' | 'about' | 'auth';

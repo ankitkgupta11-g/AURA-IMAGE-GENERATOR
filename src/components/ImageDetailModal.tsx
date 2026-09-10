@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Generation } from '../types';
+import { Generation, UserProfile } from '../types';
 import {
   X,
   Download,
@@ -13,14 +13,22 @@ import {
   RefreshCw,
   Cpu,
   Layers,
+  Archive,
+  Brush,
+  Image as ImageIcon,
 } from 'lucide-react';
+import { exportCreativeBundle } from '../lib/bundleExporter';
+import { AddToCollectionModal } from './AddToCollectionModal';
+import { InpaintModal } from './InpaintModal';
 
 interface ImageDetailModalProps {
   artwork: Generation | null;
   onClose: () => void;
   onToggleFavorite: (id: string) => void;
   onTogglePublish: (id: string, isPublic: boolean) => void;
-  onRemixPrompt: (prompt: string, style: string) => void;
+  onRemixPrompt: (prompt: string, style: string, referenceImage?: string) => void;
+  currentUser?: UserProfile;
+  onInpaintSuccess?: (newGen: Generation) => void;
 }
 
 export const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
@@ -29,10 +37,16 @@ export const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
   onToggleFavorite,
   onTogglePublish,
   onRemixPrompt,
+  currentUser = { id: 'usr-1', name: 'Creator', email: '', avatar: '', role: '', creationsCount: 0, favoritesCount: 0 },
+  onInpaintSuccess,
 }) => {
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [copiedEnhanced, setCopiedEnhanced] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [isExportingBundle, setIsExportingBundle] = useState(false);
+  const [exportProgressMsg, setExportProgressMsg] = useState('');
+  const [showMoodboardModal, setShowMoodboardModal] = useState(false);
+  const [showInpaintModal, setShowInpaintModal] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -62,6 +76,18 @@ export const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleExportZipBundle = async () => {
+    try {
+      setIsExportingBundle(true);
+      await exportCreativeBundle(artwork, (msg) => setExportProgressMsg(msg));
+    } catch (err) {
+      console.error('Export bundle error:', err);
+    } finally {
+      setIsExportingBundle(false);
+      setExportProgressMsg('');
+    }
   };
 
   return (
@@ -197,15 +223,35 @@ export const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
           </div>
 
           {/* Action Button Row */}
-          <div className="pt-4 flex flex-col gap-2.5">
-            <button
-              onClick={handleDownload}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#191d24] hover:bg-[#2c3340] text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Image (PNG)</span>
-            </button>
+          <div className="pt-4 flex flex-col gap-2">
+            {/* Export Bundle & Download */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleDownload}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#191d24] hover:bg-[#2c3340] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>PNG Image</span>
+              </button>
 
+              <button
+                onClick={handleExportZipBundle}
+                disabled={isExportingBundle}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#282e3c] hover:bg-[#394254] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                title="Export high-res image + metadata.json bundle"
+              >
+                <Archive className="w-3.5 h-3.5 text-[#8ca3ff]" />
+                <span>{isExportingBundle ? 'Bundling...' : 'Export ZIP'}</span>
+              </button>
+            </div>
+
+            {exportProgressMsg && (
+              <div className="text-[10px] font-mono text-center text-[#3052ff] animate-pulse">
+                {exportProgressMsg}
+              </div>
+            )}
+
+            {/* Favorite & Publish */}
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => onToggleFavorite(artwork.id)}
@@ -232,20 +278,63 @@ export const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
               </button>
             </div>
 
+            {/* Inpaint & Moodboard Actions */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setShowInpaintModal(true)}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                <Brush className="w-3.5 h-3.5 text-amber-700" />
+                <span>Canvas Inpaint</span>
+              </button>
+
+              <button
+                onClick={() => setShowMoodboardModal(true)}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-[#f5f3ff] hover:bg-[#ece7ff] text-[#7c3aed] border border-[#ddd6fe] text-xs font-semibold transition-colors cursor-pointer"
+              >
+                <Layers className="w-3.5 h-3.5 text-[#7c3aed]" />
+                <span>Moodboard</span>
+              </button>
+            </div>
+
+            {/* Studio Remix (Prompt + Visual Reference) */}
             <button
               onClick={() => {
-                onRemixPrompt(artwork.prompt, artwork.style);
+                onRemixPrompt(artwork.prompt, artwork.style, artwork.imageUrl);
                 onClose();
               }}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#f0f4ff] hover:bg-[#e4edff] text-[#3052ff] border border-[#d6e2ff] text-xs font-semibold transition-colors cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Remix in Studio</span>
+              <span>Remix in Studio (With Reference)</span>
             </button>
           </div>
 
         </div>
       </div>
+
+      {/* Moodboard Collection Modal */}
+      {showMoodboardModal && (
+        <AddToCollectionModal
+          isOpen={showMoodboardModal}
+          onClose={() => setShowMoodboardModal(false)}
+          artwork={artwork}
+        />
+      )}
+
+      {/* Inpainting Canvas Modal */}
+      {showInpaintModal && (
+        <InpaintModal
+          isOpen={showInpaintModal}
+          onClose={() => setShowInpaintModal(false)}
+          baseArtwork={artwork}
+          currentUser={currentUser}
+          onInpaintSuccess={(newGen) => {
+            if (onInpaintSuccess) onInpaintSuccess(newGen);
+            setShowInpaintModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

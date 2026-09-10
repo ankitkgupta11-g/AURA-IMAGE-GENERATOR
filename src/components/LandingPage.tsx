@@ -8,6 +8,7 @@ interface LandingPageProps {
   featuredArtworks: Generation[];
   onSelectArtwork: (art: Generation) => void;
   onRemixPrompt: (prompt: string, style: string) => void;
+  onStartCreate?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -15,6 +16,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   featuredArtworks,
   onSelectArtwork,
   onRemixPrompt,
+  onStartCreate,
 }) => {
   // Interactive Prompt Enhancer Demo State
   const [demoInput, setDemoInput] = useState('sculptural titanium monolith in nordic fjord');
@@ -97,7 +99,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <button
                   id="hero-start-creating-btn"
-                  onClick={() => setActiveTab('studio')}
+                  onClick={() => {
+                    if (onStartCreate) {
+                      onStartCreate();
+                    } else {
+                      setActiveTab('studio');
+                    }
+                  }}
                   className="flex items-center justify-center gap-2.5 px-7 py-3.5 bg-[#171a21] hover:bg-[#282f3c] text-white text-sm font-semibold rounded-full shadow-spatial hover:shadow-spatial-lg transition-all duration-300 group cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4 text-[#8ca3ff] group-hover:rotate-12 transition-transform duration-300" />
@@ -470,11 +478,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <button
                     onClick={() => {
                       onRemixPrompt(art.prompt, art.style);
-                      setActiveTab('studio');
+                      if (onStartCreate) {
+                        onStartCreate();
+                      } else {
+                        setActiveTab('studio');
+                      }
                     }}
                     className="text-[11px] font-semibold text-[#3052ff] hover:text-[#1830b8] flex items-center gap-1 transition-colors cursor-pointer"
                   >
-                    <Sparkles className="w-3 h-3" />
+                    <Sparkles className="w-3.5 h-3.5" />
                     <span>Remix</span>
                   </button>
                 </div>
@@ -500,7 +512,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <button
             id="final-start-creating-btn"
-            onClick={() => setActiveTab('studio')}
+            onClick={() => {
+              if (onStartCreate) {
+                onStartCreate();
+              } else {
+                setActiveTab('studio');
+              }
+            }}
             className="inline-flex items-center gap-2.5 px-8 py-4 bg-white hover:bg-gray-100 text-[#161920] text-sm font-bold rounded-full shadow-lg transition-transform hover:scale-105 duration-200 cursor-pointer"
           >
             <Sparkles className="w-4 h-4 text-[#3052ff]" />

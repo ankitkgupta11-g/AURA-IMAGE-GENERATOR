@@ -1,11 +1,13 @@
 import { neon } from '@neondatabase/serverless';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { Generation } from '../types';
 import { INITIAL_GENERATIONS } from '../data/mockArt';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
 const LOCAL_DB_FILE = path.join(DATA_DIR, 'generations.json');
+const LOCAL_USERS_FILE = path.join(DATA_DIR, 'users.json');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 
 // Ensure local directories exist
@@ -15,6 +17,74 @@ if (!fs.existsSync(DATA_DIR)) {
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
+
+export interface DbUser {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  avatar: string;
+  role: string;
+  creationsCount: number;
+  favoritesCount: number;
+  createdAt: string;
+}
+
+/**
+ * Node native cryptographic password hashing & verification
+ */
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash: string): boolean {
+  try {
+    const [salt, hash] = storedHash.split(':');
+    if (!salt || !hash) return false;
+    const key = crypto.scryptSync(password, salt, 64).toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(key, 'hex'));
+  } catch {
+    return false;
+  }
+}
+
+const DEFAULT_USERS: DbUser[] = [
+  {
+    id: 'user-ankit',
+    name: 'Ankit Gupta',
+    email: 'ankit.gupta@aura.studio',
+    passwordHash: hashPassword('aura123456'),
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    role: 'Creative Director',
+    creationsCount: 18,
+    favoritesCount: 6,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'user-elena',
+    name: 'Elena Rostova',
+    email: 'elena.rostova@aura.studio',
+    passwordHash: hashPassword('aura123456'),
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
+    role: 'Spatial Artist',
+    creationsCount: 24,
+    favoritesCount: 11,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'user-marcus',
+    name: 'Marcus Chen',
+    email: 'marcus.chen@aura.studio',
+    passwordHash: hashPassword('aura123456'),
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    role: 'Visual Architect',
+    creationsCount: 31,
+    favoritesCount: 14,
+    createdAt: new Date().toISOString(),
+  },
+];
 
 let neonClient: ReturnType<typeof neon> | null = null;
 let isNeonReady = false;
@@ -127,7 +197,39 @@ export async function initDatabase(): Promise<boolean> {
       );
     `;
 
-    // 4. Check if table is empty, seed with initial mock art
+    // 4. Create users table
+    await sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        avatar TEXT,
+        role TEXT DEFAULT 'Digital Creator',
+        creations_count INTEGER DEFAULT 0,
+        favorites_count INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `;
+
+    // 5. Seed users table if empty
+    const userCountResult = await sql`SELECT COUNT(*)::int as count FROM users;`;
+    const userCount = userCountResult[0]?.count || 0;
+    if (userCount === 0) {
+      console.log('[Database] Seeding Neon with default studio creators...');
+      for (const u of DEFAULT_USERS) {
+        await sql`
+          INSERT INTO users (
+            id, name, email, password_hash, avatar, role, creations_count, favorites_count, created_at
+          ) VALUES (
+            ${u.id}, ${u.name}, ${u.email}, ${u.passwordHash}, ${u.avatar}, ${u.role},
+            ${u.creationsCount}, ${u.favoritesCount}, ${u.createdAt}
+          ) ON CONFLICT (id) DO NOTHING;
+        `;
+      }
+    }
+
+    // 6. Check if generations table is empty, seed with initial mock art
     const countResult = await sql`SELECT COUNT(*)::int as count FROM generations;`;
     const count = countResult[0]?.count || 0;
 
@@ -218,6 +320,215 @@ export function saveLocalGenerations(data: Generation[]) {
   } catch (e) {
     console.error('Error saving local db file:', e);
   }
+}
+
+export function getLocalUsers(): DbUser[] {
+  try {
+    if (fs.existsSync(LOCAL_USERS_FILE)) {
+      const data = fs.readFileSync(LOCAL_USERS_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn('Error reading local users file:', e);
+  }
+  saveLocalUsers(DEFAULT_USERS);
+  return DEFAULT_USERS;
+}
+
+export function saveLocalUsers(data: DbUser[]) {
+  try {
+    fs.writeFileSync(LOCAL_USERS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Error saving local users file:', e);
+  }
+}
+
+// ==========================================
+// USER REPOSITORY METHODS
+// ==========================================
+
+function mapRowToUser(row: any): DbUser {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    passwordHash: row.password_hash,
+    avatar: row.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    role: row.role || 'Digital Creator',
+    creationsCount: Number(row.creations_count) || 0,
+    favoritesCount: Number(row.favorites_count) || 0,
+    createdAt: typeof row.created_at === 'object' && row.created_at ? row.created_at.toISOString() : String(row.created_at),
+  };
+}
+
+export async function getUserByEmail(email: string): Promise<DbUser | null> {
+  const normEmail = email.trim().toLowerCase();
+  const sql = getNeonSql();
+  if (sql && isNeonReady) {
+    try {
+      const rows: any[] = (await sql`SELECT * FROM users WHERE LOWER(email) = ${normEmail} LIMIT 1;`) as any;
+      if (rows && rows.length > 0) {
+        return mapRowToUser(rows[0]);
+      }
+    } catch (err) {
+      console.warn('[Database] Neon user email lookup failed, checking local:', err);
+    }
+  }
+  const localUsers = getLocalUsers();
+  return localUsers.find(u => u.email.toLowerCase() === normEmail) || null;
+}
+
+export async function getUserById(id: string): Promise<DbUser | null> {
+  const sql = getNeonSql();
+  if (sql && isNeonReady) {
+    try {
+      const rows: any[] = (await sql`SELECT * FROM users WHERE id = ${id} LIMIT 1;`) as any;
+      if (rows && rows.length > 0) {
+        return mapRowToUser(rows[0]);
+      }
+    } catch (err) {
+      console.warn('[Database] Neon user ID lookup failed, checking local:', err);
+    }
+  }
+  const localUsers = getLocalUsers();
+  return localUsers.find(u => u.id === id) || null;
+}
+
+export async function createUser(userData: {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  avatar?: string;
+  role?: string;
+}): Promise<DbUser> {
+  const passwordHash = hashPassword(userData.password);
+  const newUser: DbUser = {
+    id: userData.id,
+    name: userData.name.trim(),
+    email: userData.email.trim().toLowerCase(),
+    passwordHash,
+    avatar: userData.avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150`,
+    role: userData.role || 'Digital Creator',
+    creationsCount: 0,
+    favoritesCount: 0,
+    createdAt: new Date().toISOString(),
+  };
+
+  // 1. Save to local storage cache
+  const localUsers = getLocalUsers();
+  const filtered = localUsers.filter(u => u.id !== newUser.id && u.email.toLowerCase() !== newUser.email.toLowerCase());
+  saveLocalUsers([newUser, ...filtered]);
+
+  // 2. Persist to Neon if available
+  const sql = getNeonSql();
+  if (sql && isNeonReady) {
+    try {
+      await sql`
+        INSERT INTO users (
+          id, name, email, password_hash, avatar, role, creations_count, favorites_count, created_at
+        ) VALUES (
+          ${newUser.id}, ${newUser.name}, ${newUser.email}, ${newUser.passwordHash},
+          ${newUser.avatar}, ${newUser.role}, ${newUser.creationsCount}, ${newUser.favoritesCount},
+          ${newUser.createdAt}
+        ) ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          avatar = EXCLUDED.avatar,
+          role = EXCLUDED.role;
+      `;
+      console.log(`[Database] Persisted new user ${newUser.email} to Neon.`);
+    } catch (err) {
+      console.warn('[Database] Failed to write user to Neon, cached locally:', err);
+    }
+  }
+
+  return newUser;
+}
+
+export async function getAllUsers(): Promise<DbUser[]> {
+  const sql = getNeonSql();
+  if (sql && isNeonReady) {
+    try {
+      const rows: any[] = (await sql`SELECT * FROM users ORDER BY created_at ASC;`) as any;
+      if (rows && rows.length > 0) {
+        return rows.map(mapRowToUser);
+      }
+    } catch (err) {
+      console.warn('[Database] Neon get all users error:', err);
+    }
+  }
+  return getLocalUsers();
+}
+
+export async function verifyUserCredentials(email: string, password: string): Promise<DbUser | null> {
+  const user = await getUserByEmail(email);
+  if (!user) return null;
+  const isValid = verifyPassword(password, user.passwordHash);
+  if (!isValid) return null;
+  return user;
+}
+
+export async function deleteUser(userId: string): Promise<boolean> {
+  // 1. Delete from local cache
+  const localUsers = getLocalUsers();
+  const updated = localUsers.filter(u => u.id !== userId);
+  saveLocalUsers(updated);
+
+  // 2. Delete from Neon PostgreSQL if available
+  const sql = getNeonSql();
+  if (sql && isNeonReady) {
+    try {
+      await sql`DELETE FROM users WHERE id = ${userId};`;
+      console.log(`[Database] Deleted user ${userId} from Neon.`);
+    } catch (err) {
+      console.warn('[Database] Failed to delete user from Neon:', err);
+    }
+  }
+
+  return true;
+}
+
+export async function updateUser(
+  id: string,
+  updates: Partial<Pick<DbUser, 'name' | 'avatar' | 'role' | 'creationsCount' | 'favoritesCount'>>
+): Promise<DbUser | null> {
+  const localUsers = getLocalUsers();
+  let updatedUser: DbUser | null = null;
+  const nextUsers = localUsers.map(u => {
+    if (u.id === id) {
+      updatedUser = {
+        ...u,
+        ...updates,
+      };
+      return updatedUser;
+    }
+    return u;
+  });
+
+  if (updatedUser) {
+    saveLocalUsers(nextUsers);
+  }
+
+  const sql = getNeonSql();
+  if (sql && isNeonReady && updatedUser) {
+    try {
+      const u = updatedUser as DbUser;
+      await sql`
+        UPDATE users
+        SET name = ${u.name},
+            avatar = ${u.avatar},
+            role = ${u.role},
+            creations_count = ${u.creationsCount},
+            favorites_count = ${u.favoritesCount}
+        WHERE id = ${id};
+      `;
+    } catch (err) {
+      console.warn('[Database] Failed to update user in Neon:', err);
+    }
+  }
+
+  return updatedUser;
 }
 
 // ==========================================

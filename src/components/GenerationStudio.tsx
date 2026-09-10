@@ -20,6 +20,7 @@ import {
   Copy,
   Layers,
   ZoomIn,
+  LogIn,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -29,6 +30,7 @@ interface GenerationStudioProps {
   onOpenDetail: (gen: Generation) => void;
   initialPrompt?: string;
   initialStyle?: string;
+  onRequireAuth?: () => void;
 }
 
 export const GenerationStudio: React.FC<GenerationStudioProps> = ({
@@ -37,6 +39,7 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
   onOpenDetail,
   initialPrompt = '',
   initialStyle = 'Cinematic',
+  onRequireAuth,
 }) => {
   // Input states
   const [prompt, setPrompt] = useState(initialPrompt);
@@ -126,6 +129,13 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
 
   // Main Generation Handler
   const handleGenerate = async () => {
+    if (currentUser.isGuest || !currentUser.email) {
+      if (onRequireAuth) {
+        onRequireAuth();
+      }
+      return;
+    }
+
     if (!prompt.trim() || isGenerating) return;
 
     setIsGenerating(true);
@@ -608,6 +618,29 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
         {/* ======================================================== */}
         <div className="lg:col-span-5 flex flex-col gap-5">
           
+          {/* Guest User Authentication Requirement Banner */}
+          {(currentUser.isGuest || !currentUser.email) && (
+            <div className="p-4 rounded-3xl bg-[#eff3ff] border border-[#c7d5fd] flex items-start gap-3 shadow-xs">
+              <Sparkles className="w-5 h-5 text-[#3052ff] shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="text-xs font-bold text-[#1a2560]">Sign in required to create art</div>
+                <p className="text-[11px] text-[#3e4f9b] mt-0.5 leading-relaxed">
+                  Sign in or create an account to start generating visual art and save your creations to your private gallery.
+                </p>
+                {onRequireAuth && (
+                  <button
+                    type="button"
+                    onClick={onRequireAuth}
+                    className="mt-2.5 px-3 py-1.5 rounded-xl bg-[#3052ff] hover:bg-[#2040e0] text-white text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Sign In / Create Account</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* 1. Prompt Composer Card */}
           <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#dedad0] shadow-spatial">
             
@@ -927,18 +960,27 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
           <button
             id="generate-action-btn"
             onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating}
+            disabled={currentUser.isGuest ? false : (!prompt.trim() || isGenerating)}
             className="relative w-full py-4 px-6 rounded-2xl bg-[#171a21] hover:bg-[#272e3b] disabled:opacity-50 text-white font-display text-base font-bold shadow-spatial-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-3 group cursor-pointer overflow-hidden"
           >
             {/* Shimmer animation */}
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
-            <Sparkles className={`w-5 h-5 text-[#8ca3ff] ${isGenerating ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`} />
-            <span>{isGenerating ? 'Synthesizing Visual...' : 'Generate Image'}</span>
+            {currentUser.isGuest ? (
+              <>
+                <LogIn className="w-5 h-5 text-[#8ca3ff] group-hover:scale-110 transition-transform" />
+                <span>Sign In to Start Creating</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className={`w-5 h-5 text-[#8ca3ff] ${isGenerating ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`} />
+                <span>{isGenerating ? 'Synthesizing Visual...' : 'Generate Image'}</span>
 
-            <span className="hidden sm:inline text-[10px] font-mono px-2 py-0.5 rounded bg-white/15 text-gray-200">
-              ⌘ + ↵
-            </span>
+                <span className="hidden sm:inline text-[10px] font-mono px-2 py-0.5 rounded bg-white/15 text-gray-200">
+                  ⌘ + ↵
+                </span>
+              </>
+            )}
           </button>
 
         </div>

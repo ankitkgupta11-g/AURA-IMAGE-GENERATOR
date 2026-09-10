@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
-import { ActiveTab, UserProfile } from '../types';
-import { Sparkles, Layers, Compass, Grid, User, ChevronDown, Check, Zap, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ActiveTab, UserProfile, UserCredits } from '../types';
+import { Sparkles, Layers, Compass, Grid, User, ChevronDown, Check, Zap, LogOut, LogIn, Trash2, RefreshCw } from 'lucide-react';
+import { isClerkConfigured } from '../lib/clerkConfig';
+import { ClerkUserNav } from './ClerkUserNav';
+import { getUserCredits, refillCredits } from '../lib/creditsManager';
 
 interface NavbarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   currentUser: UserProfile;
   onOpenAuth: () => void;
+  onLogout?: () => void;
+  onOpenDeleteAccount?: () => void;
+  onStartCreate?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -14,8 +20,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   currentUser,
   onOpenAuth,
+  onLogout,
+  onOpenDeleteAccount,
+  onStartCreate,
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showCreditsMenu, setShowCreditsMenu] = useState(false);
+  const [credits, setCredits] = useState<UserCredits>(getUserCredits());
+
+  useEffect(() => {
+    const handleCredits = (e: any) => {
+      if (e.detail) setCredits(e.detail);
+    };
+    window.addEventListener('aura:credits_updated', handleCredits);
+    return () => window.removeEventListener('aura:credits_updated', handleCredits);
+  }, []);
 
   const navItems = [
     { id: 'landing' as ActiveTab, label: 'Overview', icon: null },
@@ -60,7 +79,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 key={item.id}
                 id={`nav-${item.id}`}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  if (item.id === 'studio' && onStartCreate) {
+                    onStartCreate();
+                  } else {
+                    setActiveTab(item.id);
+                  }
+                }}
                 className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
                   isActive
                     ? 'bg-white text-[#16191f] shadow-sm font-semibold'
@@ -81,6 +106,68 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Actions & Profile */}
         <div className="flex items-center gap-3">
+          {/* Creator Credits Token Badge */}
+          <div className="relative">
+            <button
+              onClick={() => setShowCreditsMenu(!showCreditsMenu)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#faf8f4] hover:bg-[#edeae1] border border-[#dedad0] text-xs font-mono transition-colors cursor-pointer"
+              title="Creator Generation Credits"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              <span className="font-bold text-[#181b22]">{credits.remaining}</span>
+              <span className="text-[#8b95a5]">/{credits.totalDaily}</span>
+            </button>
+
+            {showCreditsMenu && (
+              <div
+                className="absolute right-0 mt-2 w-72 rounded-2xl bg-white border border-[#dedad0] shadow-spatial-lg p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-[#f1efe9]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                      <Zap className="w-3.5 h-3.5 fill-amber-500" />
+                    </div>
+                    <span className="text-xs font-bold text-[#181b22]">Creator Fast Tokens</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#f0f4ff] text-[#3052ff] font-semibold">
+                    {credits.tier}
+                  </span>
+                </div>
+
+                <div className="py-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#6c7689]">Remaining Today:</span>
+                    <span className="font-mono font-bold text-[#181b22]">{credits.remaining} Generations</span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full h-1.5 bg-[#f0eee7] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-400 to-[#3052ff] rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (credits.remaining / credits.totalDaily) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-[#788293] leading-relaxed pt-1">
+                    Each generation and selective canvas inpaint consumes 1 credit. Daily quota automatically replenishes every 24 hours.
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-[#f1efe9] flex items-center justify-between">
+                  <button
+                    onClick={() => {
+                      refillCredits();
+                      setShowCreditsMenu(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-[#181b22] hover:bg-[#2c3340] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Instant Credit Refill</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Active AI Model Pill */}
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f0eee7] border border-[#dedad0] text-xs font-mono text-[#434b58]">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -91,7 +178,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           {activeTab !== 'studio' && (
             <button
               id="header-create-btn"
-              onClick={() => setActiveTab('studio')}
+              onClick={() => {
+                if (onStartCreate) {
+                  onStartCreate();
+                } else {
+                  setActiveTab('studio');
+                }
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-[#191d24] hover:bg-[#2b323e] text-white text-xs font-semibold rounded-full shadow-sm hover:shadow transition-all duration-200 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#8ca3ff]" />
@@ -99,76 +192,121 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* User Profile dropdown */}
-          <div className="relative">
+          {/* Profile & Auth Section */}
+          {isClerkConfigured ? (
+            <ClerkUserNav
+              currentUser={currentUser}
+              onOpenAuth={() => setActiveTab('auth')}
+              onLogout={onLogout || (() => {})}
+            />
+          ) : currentUser.isGuest ? (
             <button
-              id="user-profile-menu-btn"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 p-1.5 pl-2.5 rounded-full bg-[#f0eee7] hover:bg-[#e7e4dc] border border-[#dedad0] transition-colors"
+              onClick={() => setActiveTab('auth')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#3052ff] hover:bg-[#2040e0] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
-              <span className="text-xs font-medium text-[#2d3442] hidden sm:inline">
-                {currentUser.name.split(' ')[0]}
-              </span>
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                referrerPolicy="no-referrer"
-                className="w-7 h-7 rounded-full object-cover ring-1 ring-[#16191f]/10"
-              />
-              <ChevronDown className="w-3.5 h-3.5 text-[#6c7689]" />
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
             </button>
-
-            {showUserMenu && (
-              <div 
-                className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-[#16191f]/10 shadow-spatial-lg p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
-                onClick={() => setShowUserMenu(false)}
+          ) : (
+            /* User Profile dropdown */
+            <div className="relative">
+              <button
+                id="user-profile-menu-btn"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 p-1.5 pl-2.5 rounded-full bg-[#f0eee7] hover:bg-[#e7e4dc] border border-[#dedad0] transition-colors cursor-pointer"
               >
-                <div className="px-3 py-2.5 border-b border-[#f1efe9]">
-                  <p className="text-xs font-semibold text-[#16191f]">{currentUser.name}</p>
-                  <p className="text-[11px] text-[#717b8c] truncate">{currentUser.email}</p>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <span className="text-[10px] font-mono uppercase bg-[#f3f1ec] text-[#4f5869] px-2 py-0.5 rounded font-medium">
-                      {currentUser.role}
-                    </span>
-                    <span className="text-[10px] text-emerald-600 font-medium">Pro Studio Pass</span>
+                <span className="text-xs font-medium text-[#2d3442] hidden sm:inline">
+                  {currentUser.name.split(' ')[0]}
+                </span>
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  referrerPolicy="no-referrer"
+                  className="w-7 h-7 rounded-full object-cover ring-1 ring-[#16191f]/10"
+                />
+                <ChevronDown className="w-3.5 h-3.5 text-[#6c7689]" />
+              </button>
+
+              {showUserMenu && (
+                <div 
+                  className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-[#16191f]/10 shadow-spatial-lg p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  <div className="px-3 py-2.5 border-b border-[#f1efe9]">
+                    <p className="text-xs font-semibold text-[#16191f]">{currentUser.name}</p>
+                    <p className="text-[11px] text-[#717b8c] truncate">{currentUser.email}</p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <span className="text-[10px] font-mono uppercase bg-[#f3f1ec] text-[#4f5869] px-2 py-0.5 rounded font-medium">
+                        {currentUser.role}
+                      </span>
+                      <span className="text-[10px] text-emerald-600 font-medium">Active Studio</span>
+                    </div>
+                  </div>
+
+                  <div className="py-1">
+                    <button
+                      onClick={() => setActiveTab('gallery')}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs text-[#2c3340] hover:bg-[#f6f5f1] rounded-lg transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Grid className="w-3.5 h-3.5 text-[#6d778a]" />
+                        My Creations
+                      </span>
+                      <span className="text-[11px] font-mono text-[#7b8597]">{currentUser.creationsCount}</span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('dashboard')}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs text-[#2c3340] hover:bg-[#f6f5f1] rounded-lg transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Layers className="w-3.5 h-3.5 text-[#6d778a]" />
+                        Creative Space
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="pt-1 border-t border-[#f1efe9] space-y-0.5">
+                    <button
+                      onClick={() => setActiveTab('auth')}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#3052ff] hover:bg-[#f0f4ff] font-semibold rounded-lg transition-colors cursor-pointer"
+                    >
+                      <LogIn className="w-3.5 h-3.5 text-[#3052ff]" />
+                      Account Settings
+                    </button>
+
+                    <button
+                      onClick={onOpenAuth}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#525d70] hover:text-[#16191f] hover:bg-[#f6f5f1] rounded-lg transition-colors cursor-pointer"
+                    >
+                      <User className="w-3.5 h-3.5 text-[#6d778a]" />
+                      Switch Creator Profile
+                    </button>
+
+                    {onLogout && (
+                      <button
+                        onClick={onLogout}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#525d70] hover:bg-[#f6f5f1] rounded-lg transition-colors cursor-pointer"
+                      >
+                        <LogOut className="w-3.5 h-3.5 text-[#6d778a]" />
+                        Sign Out
+                      </button>
+                    )}
+
+                    {onOpenDeleteAccount && (
+                      <button
+                        onClick={onOpenDeleteAccount}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                        Delete Account
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                <div className="py-1">
-                  <button
-                    onClick={() => setActiveTab('gallery')}
-                    className="w-full flex items-center justify-between px-3 py-2 text-xs text-[#2c3340] hover:bg-[#f6f5f1] rounded-lg transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Grid className="w-3.5 h-3.5 text-[#6d778a]" />
-                      My Creations
-                    </span>
-                    <span className="text-[11px] font-mono text-[#7b8597]">{currentUser.creationsCount}</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('dashboard')}
-                    className="w-full flex items-center justify-between px-3 py-2 text-xs text-[#2c3340] hover:bg-[#f6f5f1] rounded-lg transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Layers className="w-3.5 h-3.5 text-[#6d778a]" />
-                      Creative Space
-                    </span>
-                  </button>
-                </div>
-
-                <div className="pt-1 border-t border-[#f1efe9]">
-                  <button
-                    onClick={onOpenAuth}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#525d70] hover:text-[#16191f] hover:bg-[#f6f5f1] rounded-lg transition-colors"
-                  >
-                    <User className="w-3.5 h-3.5 text-[#6d778a]" />
-                    Switch Account / Profile
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
       </div>
@@ -181,7 +319,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => {
+                if (item.id === 'studio' && onStartCreate) {
+                  onStartCreate();
+                } else {
+                  setActiveTab(item.id);
+                }
+              }}
               className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[11px] ${
                 isActive ? 'text-[#16191f] font-semibold' : 'text-[#6f788a]'
               }`}

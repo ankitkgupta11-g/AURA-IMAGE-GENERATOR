@@ -8,25 +8,46 @@ import { CommunityExplore } from './components/CommunityExplore';
 import { DashboardView } from './components/DashboardView';
 import { ImageDetailModal } from './components/ImageDetailModal';
 import { AuthModal } from './components/AuthModal';
+import { AuthPage } from './components/AuthPage';
+import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { Footer } from './components/Footer';
+import { ClerkSyncBridge } from './components/ClerkWrapper';
 import { INITIAL_GENERATIONS } from './data/mockArt';
 
-const DEFAULT_USER: UserProfile = {
-  id: 'user-ankit',
-  name: 'Ankit Gupta',
-  email: 'ankit.gupta@aura.studio',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-  role: 'Creative Director',
-  creationsCount: 18,
-  favoritesCount: 6,
+const GUEST_USER: UserProfile = {
+  id: 'guest',
+  name: 'Guest Explorer',
+  email: '',
+  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+  role: 'Guest Creator',
+  creationsCount: 0,
+  favoritesCount: 0,
+  isGuest: true,
+};
+
+const getStoredUser = (): UserProfile => {
+  try {
+    const savedUser = localStorage.getItem('aura_user');
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      if (parsed && parsed.id && parsed.name) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Could not restore user session:', e);
+  }
+  return GUEST_USER;
 };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('landing');
-  const [currentUser, setCurrentUser] = useState<UserProfile>(DEFAULT_USER);
+  const [currentUser, setCurrentUser] = useState<UserProfile>(getStoredUser);
   const [generations, setGenerations] = useState<Generation[]>(INITIAL_GENERATIONS);
   const [selectedArtwork, setSelectedArtwork] = useState<Generation | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Pre-fill state when remixing from gallery/landing to studio
   const [studioPrompt, setStudioPrompt] = useState<string>('');
@@ -50,12 +71,66 @@ export default function App() {
     fetchGallery();
   }, []);
 
+  // Handler for Start Creating action (auth-gated)
+  const handleStartCreate = () => {
+    if (currentUser.isGuest || !currentUser.email) {
+      setAuthNotice('Please sign in or create an account to start creating artwork in the Studio. Your creations will be saved to your private gallery.');
+      setActiveTab('auth');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setActiveTab('studio');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Handle Sign Out
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('aura_user');
+      localStorage.removeItem('aura_token');
+    } catch (e) {
+      // ignore
+    }
+    setCurrentUser(GUEST_USER);
+    setAuthNotice(null);
+    setActiveTab('landing');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle Account Deletion Success
+  const handleDeleteAccountSuccess = () => {
+    try {
+      localStorage.removeItem('aura_user');
+      localStorage.removeItem('aura_token');
+    } catch (e) {
+      // ignore
+    }
+    setCurrentUser(GUEST_USER);
+    setIsDeleteModalOpen(false);
+    setAuthNotice(null);
+    setActiveTab('landing');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // When a new user logs in or registers successfully
+  const handleLoginSuccess = (user: UserProfile) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('aura_user', JSON.stringify(user));
+    } catch (e) {
+      // ignore
+    }
+    setAuthNotice(null);
+    setActiveTab('studio');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // When a new generation is created in studio
   const handleGenerationCreated = (newGen: Generation) => {
     setGenerations((prev) => [newGen, ...prev]);
     setCurrentUser((prev) => ({
       ...prev,
-      creationsCount: prev.creationsCount + 1,
+      creationsCount: (prev.creationsCount || 0) + 1,
     }));
   };
 
@@ -140,16 +215,27 @@ export default function App() {
     }
   };
 
-  // Remix prompt: loads into studio
+  // Remix prompt: loads into studio (auth-checked)
   const handleRemixPrompt = (prompt: string, style: string) => {
     setStudioPrompt(prompt);
     setStudioStyle(style);
-    setActiveTab('studio');
+    if (currentUser.isGuest || !currentUser.email) {
+      setAuthNotice('Please sign in or create an account to start creating artwork in the Studio. Your selected prompt is ready to remix!');
+      setActiveTab('auth');
+    } else {
+      setActiveTab('studio');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div className="min-h-screen bg-[#f7f6f2] text-[#191d24] font-sans antialiased flex flex-col selection:bg-[#3052ff]/15 selection:text-[#3052ff]">
+      {/* Clerk User Synchronization Bridge */}
+      <ClerkSyncBridge
+        currentUser={currentUser}
+        onSyncUser={handleLoginSuccess}
+        onLogout={handleLogout}
+      />
       
       {/* Navigation Header */}
       <Navbar
@@ -157,6 +243,9 @@ export default function App() {
         setActiveTab={setActiveTab}
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthOpen(true)}
+        onLogout={handleLogout}
+        onOpenDeleteAccount={() => setIsDeleteModalOpen(true)}
+        onStartCreate={handleStartCreate}
       />
 
       {/* Main Content Area */}
@@ -167,6 +256,17 @@ export default function App() {
             featuredArtworks={generations}
             onSelectArtwork={setSelectedArtwork}
             onRemixPrompt={handleRemixPrompt}
+            onStartCreate={handleStartCreate}
+          />
+        )}
+
+        {activeTab === 'auth' && (
+          <AuthPage
+            setActiveTab={setActiveTab}
+            currentUser={currentUser}
+            onLoginSuccess={handleLoginSuccess}
+            authNotice={authNotice}
+            onOpenDeleteAccount={() => setIsDeleteModalOpen(true)}
           />
         )}
 
@@ -177,6 +277,7 @@ export default function App() {
             onOpenDetail={setSelectedArtwork}
             initialPrompt={studioPrompt}
             initialStyle={studioStyle}
+            onRequireAuth={handleStartCreate}
           />
         )}
 
@@ -229,7 +330,24 @@ export default function App() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         currentUser={currentUser}
-        onSelectUser={setCurrentUser}
+        onSelectUser={(user) => {
+          handleLoginSuccess(user);
+        }}
+        onNavigateToAuth={() => {
+          setIsAuthOpen(false);
+          setActiveTab('auth');
+        }}
+        onOpenDeleteAccount={() => {
+          setIsAuthOpen(false);
+          setIsDeleteModalOpen(true);
+        }}
+      />
+
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        currentUser={currentUser}
+        onAccountDeleted={handleDeleteAccountSuccess}
       />
 
     </div>

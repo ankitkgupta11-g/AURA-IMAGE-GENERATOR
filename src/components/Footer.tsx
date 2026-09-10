@@ -68,6 +68,14 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
                   Creative Space
                 </button>
               </li>
+              <li>
+                <button
+                  onClick={() => setActiveTab('auth')}
+                  className="hover:text-[#3052ff] font-semibold text-[#3052ff] transition-colors cursor-pointer"
+                >
+                  Sign In / Create Account
+                </button>
+              </li>
             </ul>
           </div>
 
