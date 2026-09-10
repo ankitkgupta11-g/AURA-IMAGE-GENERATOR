@@ -11,7 +11,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
     <footer className="w-full bg-[#eeece5] border-t border-[#dedad0] text-[#3e4654] py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-12">
           
           {/* Col 1: Brand */}
           <div className="md:col-span-2">
@@ -24,14 +24,14 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
             <p className="text-xs text-[#626c7e] max-w-sm leading-relaxed mb-4">
               A high-precision 3D generative AI creative platform designed for digital artists, architectural visualization, and editorial spatial design.
             </p>
-            <div className="flex items-center gap-2 text-[11px] font-mono text-[#5b6576]">
+            <div className="flex items-center gap-2 text-xs font-mono text-[#5b6576]">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span>Gemini 3.1 Flash Spatial Engine Operational</span>
             </div>
           </div>
 
           {/* Col 2: Studio Navigation */}
-          <div>
+          <div className="md:col-span-1.5 md:pl-2">
             <span className="text-xs font-mono uppercase font-bold text-[#1c2128] tracking-wider block mb-3">
               Platform
             </span>
@@ -80,7 +80,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
           </div>
 
           {/* Col 3: Research & Major Project */}
-          <div>
+          <div className="md:col-span-1.5 md:pl-2">
             <span className="text-xs font-mono uppercase font-bold text-[#1c2128] tracking-wider block mb-3">
               Project Provenance
             </span>

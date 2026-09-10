@@ -86,16 +86,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setActiveTab(item.id);
                   }
                 }}
-                className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                className={`relative flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-full transition-all duration-200 leading-normal ${
                   isActive
                     ? 'bg-white text-[#16191f] shadow-sm font-semibold'
                     : 'text-[#5d6675] hover:text-[#16191f] hover:bg-white/50'
                 }`}
               >
-                {Icon && <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#3052ff]' : 'text-[#7e889b]'}`} />}
-                <span>{item.label}</span>
+                {Icon && <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#3052ff]' : 'text-[#7e889b]'}`} />}
+                <span className="leading-none">{item.label}</span>
                 {item.badge && (
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-[#3052ff]/10 text-[#3052ff] font-bold">
+                  <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-[#3052ff]/10 text-[#3052ff] font-bold leading-none">
                     {item.badge}
                   </span>
                 )}
@@ -105,15 +105,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Right Actions & Profile */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {/* Creator Credits Token Badge */}
           <div className="relative">
             <button
               onClick={() => setShowCreditsMenu(!showCreditsMenu)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#faf8f4] hover:bg-[#edeae1] border border-[#dedad0] text-xs font-mono transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#faf8f4] hover:bg-[#edeae1] border border-[#dedad0] text-xs font-mono transition-colors cursor-pointer leading-none"
               title="Creator Generation Credits"
             >
-              <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
               <span className="font-bold text-[#181b22]">{credits.remaining}</span>
               <span className="text-[#8b95a5]">/{credits.totalDaily}</span>
             </button>
@@ -147,9 +147,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                       style={{ width: `${Math.min(100, (credits.remaining / credits.totalDaily) * 100)}%` }}
                     />
                   </div>
-                  <p className="text-[11px] text-[#788293] leading-relaxed pt-1">
-                    Each generation and selective canvas inpaint consumes 1 credit. Daily quota automatically replenishes every 24 hours.
-                  </p>
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-1.5 text-xs text-[#525b6c]">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="font-mono text-[11px]">Gemini 3.1 Flash</span>
+                    </div>
+                    <span className="text-[11px] text-[#788293]">Daily Reset</span>
+                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-[#f1efe9] flex items-center justify-between">
@@ -166,12 +170,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Active AI Model Pill */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f0eee7] border border-[#dedad0] text-xs font-mono text-[#434b58]">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-medium">Gemini 3.1 Flash</span>
           </div>
 
           {/* Quick Create Studio CTA */}

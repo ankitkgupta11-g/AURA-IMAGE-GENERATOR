@@ -194,17 +194,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             
             {/* Quick Sample Selector */}
             <div className="mb-5 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-[#6c7688] font-medium shrink-0">Try an idea:</span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {samplePrompts.map((item) => (
-                  <button
-                    key={item.title}
-                    onClick={() => handleRunDemoEnhancement(item.text)}
-                    className="px-3 py-1.5 text-xs font-medium rounded-full bg-[#f3f1ec] hover:bg-[#e7e4db] text-[#343b48] border border-[#dedad0] transition-colors cursor-pointer leading-none"
-                  >
-                    {item.title}
-                  </button>
-                ))}
+              <span className="text-xs text-[#6c7689] font-medium shrink-0">Try an idea:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {samplePrompts.map((item) => {
+                  const isCurrent = demoInput.toLowerCase() === item.text.toLowerCase();
+                  return (
+                    <button
+                      key={item.title}
+                      onClick={() => handleRunDemoEnhancement(item.text)}
+                      className={`px-3.5 py-1.5 text-xs font-medium rounded-full border transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+                        isCurrent
+                          ? 'bg-[#181b22] text-white border-[#181b22] shadow-xs font-semibold'
+                          : 'bg-white hover:bg-[#f0eee7] text-[#343b48] hover:text-[#181b22] border-[#d5d0c4] shadow-xs hover:shadow'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isCurrent ? 'bg-[#8ca3ff]' : 'bg-[#3052ff]/60'}`} />
+                      <span>{item.title}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -216,21 +224,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <span className="text-xs font-mono uppercase tracking-wider text-[#6e7789] font-semibold">
                       Raw User Input
                     </span>
-                    <span className="text-[11px] text-[#8e98aa]">Prompt</span>
+                    <span className="text-xs text-[#8e98aa]">Prompt</span>
                   </div>
                   <p className="text-sm font-medium text-[#1c2128] italic">
                     "{demoInput}"
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-[#e8e6df]">
+                <div className="mt-6 pt-4 border-t border-[#e8e6df] flex items-center">
                   <button
                     id="enhance-demo-btn"
                     onClick={() => handleRunDemoEnhancement(demoInput)}
                     disabled={isEnhancingDemo}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#191d24] hover:bg-[#2e3644] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-transparent hover:bg-[#ebe8e0] text-[#1c2128] border border-[#d5d0c4] text-xs font-semibold rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50"
                   >
-                    <Wand2 className={`w-3.5 h-3.5 ${isEnhancingDemo ? 'animate-spin' : 'text-[#8ca3ff]'}`} />
+                    <Wand2 className={`w-3.5 h-3.5 ${isEnhancingDemo ? 'animate-spin text-[#3052ff]' : 'text-[#3052ff]'}`} />
                     <span>{isEnhancingDemo ? 'Synthesizing Prompt...' : 'Enhance with Gemini'}</span>
                   </button>
                 </div>
@@ -262,9 +270,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       onRemixPrompt(demoEnhanced, 'Cinematic');
                       setActiveTab('studio');
                     }}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 bg-[#3052ff] hover:bg-[#2040e0] text-white text-xs font-semibold rounded-xl shadow-sm transition-colors cursor-pointer"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 bg-[#171a21] hover:bg-[#2b323e] text-white text-xs font-semibold rounded-xl shadow-spatial transition-all duration-200 cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#8ca3ff]" />
                     <span>Use in Studio</span>
                   </button>
 
@@ -273,7 +281,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     className="p-2.5 rounded-xl bg-white hover:bg-[#f0f4ff] border border-[#d6e0ff] text-[#3052ff] transition-colors cursor-pointer"
                     title="Copy Prompt"
                   >
-                    {copiedDemo ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                    {copiedDemo ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-[#3052ff]" />}
                   </button>
                 </div>
               </div>
@@ -308,7 +316,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-10 h-10 rounded-2xl bg-[#f3f1eb] text-[#1c2128] font-mono text-xs font-bold flex items-center justify-center border border-[#dedad0]">
                     01
                   </div>
-                  <PenTool className="w-4 h-4 text-[#8a94a6]" />
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center">
+                    <PenTool className="w-4 h-4 text-[#717b8c]" />
+                  </div>
                 </div>
                 <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
                   Describe Your Vision
@@ -327,10 +337,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="p-6 rounded-3xl bg-white border border-[#dedad0] shadow-spatial hover:shadow-spatial-lg transition-all duration-300 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-5">
-                  <div className="w-10 h-10 rounded-2xl bg-[#3052ff]/10 text-[#3052ff] font-mono text-xs font-bold flex items-center justify-center border border-[#3052ff]/20">
+                  <div className="w-10 h-10 rounded-2xl bg-[#f3f1eb] text-[#1c2128] font-mono text-xs font-bold flex items-center justify-center border border-[#dedad0]">
                     02
                   </div>
-                  <Wand2 className="w-4 h-4 text-[#3052ff]" />
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center">
+                    <Wand2 className="w-4 h-4 text-[#717b8c]" />
+                  </div>
                 </div>
                 <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
                   Enhance with AI
@@ -339,7 +351,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   Click Enhance to have Gemini automatically expand your prompt with lighting, framing, lens optics, and rich micro-textures.
                 </p>
               </div>
-              <div className="mt-6 pt-3 border-t border-[#f0eee7] flex items-center gap-1.5 text-xs text-[#3052ff] font-mono font-medium">
+              <div className="mt-6 pt-3 border-t border-[#f0eee7] flex items-center gap-1.5 text-xs text-[#717b8c] font-mono">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#3052ff]" />
                 <span>Gemini Flash Co-Pilot</span>
               </div>
@@ -352,7 +364,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-10 h-10 rounded-2xl bg-[#f3f1eb] text-[#1c2128] font-mono text-xs font-bold flex items-center justify-center border border-[#dedad0]">
                     03
                   </div>
-                  <Cpu className="w-4 h-4 text-[#8a94a6]" />
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center">
+                    <Cpu className="w-4 h-4 text-[#717b8c]" />
+                  </div>
                 </div>
                 <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
                   Neural Generation
@@ -374,7 +388,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-10 h-10 rounded-2xl bg-[#f3f1eb] text-[#1c2128] font-mono text-xs font-bold flex items-center justify-center border border-[#dedad0]">
                     04
                   </div>
-                  <Share2 className="w-4 h-4 text-[#8a94a6]" />
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center">
+                    <Share2 className="w-4 h-4 text-[#717b8c]" />
+                  </div>
                 </div>
                 <h3 className="font-display text-lg font-bold text-[#171a21] mb-2">
                   Refine, Upscale & Share
@@ -384,7 +400,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </p>
               </div>
               <div className="mt-6 pt-3 border-t border-[#f0eee7] flex items-center gap-1.5 text-xs text-[#717b8c] font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3052ff]" />
                 <span>Lossless Export</span>
               </div>
             </div>
@@ -399,7 +415,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="max-w-3xl mb-14">
-            <span className="text-xs font-mono font-bold tracking-widest text-[#3052ff] uppercase mb-3 inline-block">
+            <span className="text-xs font-mono font-bold tracking-wider text-[#3052ff] mb-3 inline-block">
               Engine Capabilities
             </span>
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#15181e] tracking-tight">
@@ -457,9 +473,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <section className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4 pb-2 border-b border-[#dedad0]/60">
             <div>
-              <span className="text-xs font-mono font-bold tracking-widest text-[#3052ff] uppercase mb-3 inline-block">
+              <span className="text-xs font-mono font-bold tracking-wider text-[#3052ff] mb-2 inline-block">
                 Curated Exhibition
               </span>
               <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#15181e] tracking-tight">
@@ -469,7 +485,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <button
               onClick={() => setActiveTab('explore')}
-              className="inline-flex items-center gap-2 text-xs font-semibold text-[#1c2128] hover:text-[#3052ff] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#d5d0c4] bg-white hover:bg-[#181b22] text-[#1c2128] hover:text-white text-xs font-semibold shadow-2xs hover:shadow transition-all duration-200 cursor-pointer self-start sm:self-auto mb-1"
             >
               <span>View full community gallery</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -483,14 +499,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className="group relative rounded-3xl overflow-hidden bg-white border border-[#dedad0] shadow-spatial hover:shadow-spatial-lg transition-all duration-300"
               >
                 <div 
-                  className="relative aspect-4/3 overflow-hidden cursor-pointer bg-[#eceae3]"
+                  className="relative aspect-4/3 overflow-hidden cursor-pointer bg-[#eceae3] rounded-t-3xl rounded-b-none"
                   onClick={() => onSelectArtwork(art)}
                 >
                   <img
                     src={art.imageUrl}
                     alt={art.prompt}
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out rounded-t-3xl rounded-b-none"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-5">
                     <div className="text-white">
@@ -525,9 +541,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         setActiveTab('studio');
                       }
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 min-h-[32px] text-xs font-semibold text-[#3052ff] hover:text-white bg-[#f0f4ff] hover:bg-[#3052ff] border border-[#d6e0ff] hover:border-[#3052ff] rounded-xl transition-all duration-200 cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 min-h-[32px] text-xs font-semibold text-[#181b22] hover:text-white bg-white hover:bg-[#181b22] border border-[#d5d0c4] hover:border-[#181b22] rounded-full shadow-2xs hover:shadow transition-all duration-200 cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#3052ff] group-hover:text-white" />
                     <span>Remix</span>
                   </button>
                 </div>
