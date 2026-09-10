@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Generation, ActiveTab } from '../types';
-import { ART_STYLES } from '../data/mockArt';
+import { ART_STYLES } from '../constants/mockArt';
 import { Search, Heart, Download, Maximize2, Sparkles, Filter, Trash2, Share2 } from 'lucide-react';
 
 interface PersonalGalleryProps {

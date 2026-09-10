@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Generation, AspectRatio, ImageQuality, UserProfile } from '../types';
-import { ART_STYLES, SAMPLE_PROMPT_IDEAS } from '../data/mockArt';
+import { ART_STYLES, SAMPLE_PROMPT_IDEAS } from '../constants/mockArt';
 import {
   Sparkles,
   Wand2,

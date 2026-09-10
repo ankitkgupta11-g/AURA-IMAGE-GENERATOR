@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Generation, ActiveTab } from '../types';
-import { ART_STYLES } from '../data/mockArt';
+import { ART_STYLES } from '../constants/mockArt';
 import { Search, Heart, Sparkles, Compass, Flame, Clock, ThumbsUp, Eye, Share2, Filter } from 'lucide-react';
 import confetti from 'canvas-confetti';
 

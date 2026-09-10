@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { Generation } from '../types';
-import { INITIAL_GENERATIONS } from '../data/mockArt';
+import { INITIAL_GENERATIONS } from '../constants/mockArt';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
 const LOCAL_DB_FILE = path.join(DATA_DIR, 'generations.json');

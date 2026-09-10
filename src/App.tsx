@@ -12,7 +12,7 @@ import { AuthPage } from './components/AuthPage';
 import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { Footer } from './components/Footer';
 import { ClerkSyncBridge } from './components/ClerkWrapper';
-import { INITIAL_GENERATIONS } from './data/mockArt';
+import { INITIAL_GENERATIONS } from './constants/mockArt';
 
 const GUEST_USER: UserProfile = {
   id: 'guest',
