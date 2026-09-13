@@ -52,9 +52,22 @@ Public artwork can receive likes and track views.
 
 Keep track of prompts and previously generated artwork.
 
-### 💾 Persistent Database
+### 💾 Cloud Firestore & Persistent Database
 
-Neon PostgreSQL is used to persist generations, favorites, prompt history, and related application data.
+Cloud Firestore provides real-time persistent data storage across devices and sessions. Neon PostgreSQL is also supported for relational queries alongside local filesystem JSON storage fallbacks.
+
+### 🛡️ Production-Ready Dual Authentication & RBAC
+
+- **Dual Authentication**: 
+  - **Google 1-Click Popup Sign-In** (`signInWithPopup`)
+  - **Email & Password Authentication** (`signInWithEmailAndPassword`, `createUserWithEmailAndPassword`)
+- **Role-Based Access Control (RBAC)**:
+  - **Owner / Admin**: Designated owner accounts (`kajugupta1119@gmail.com`, `ankitkgupta1123@gmail.com`) automatically receive the **Owner / Admin** role and **"Ankit Gupta"** display identity.
+  - **Student / Learner**: All other self-registering users receive the default **Student / Learner** role.
+- **Zero-Leak Security**:
+  - Direct Firebase Auth SDK tokens and client-side session management.
+  - Zero hardcoded passwords in client bundles.
+  - Secure `firestore.rules` deployed to protect private subcollections and ensure authorization checks on creation documents.
 
 ### 🔄 Local Storage Fallback
 
@@ -85,10 +98,11 @@ Designed to provide a smooth experience across desktop, tablet, and mobile devic
 
 * Google Gemini API
 
-### Database
-
-* PostgreSQL
-* Neon PostgreSQL
+### Database & Auth
+ 
+* Cloud Firestore (Google Cloud Platform)
+* Firebase Authentication (Google 1-Click Popup + Email/Password)
+* PostgreSQL / Neon Database
 * `@neondatabase/serverless`
 
 ### Storage

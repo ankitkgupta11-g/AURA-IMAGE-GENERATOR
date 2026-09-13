@@ -13,6 +13,12 @@ import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { Footer } from './components/Footer';
 import { ClerkSyncBridge } from './components/ClerkWrapper';
 import { INITIAL_GENERATIONS } from './constants/mockArt';
+import { 
+  subscribeToAuthChanges, 
+  subscribeToUserGenerations, 
+  logoutFirebase, 
+  saveGenerationToFirestore 
+} from './lib/authService';
 
 const GUEST_USER: UserProfile = {
   id: 'guest',
@@ -71,6 +77,38 @@ export default function App() {
     fetchGallery();
   }, []);
 
+  // Real-time Firebase Authentication State Listener
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthChanges((user) => {
+      if (user) {
+        setCurrentUser(user);
+        try {
+          localStorage.setItem('aura_user', JSON.stringify(user));
+        } catch {
+          // ignore
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time Firestore sync for personal creations
+  useEffect(() => {
+    if (!currentUser || currentUser.isGuest || !currentUser.id) return;
+
+    const unsubscribe = subscribeToUserGenerations(currentUser.id, (userGens) => {
+      if (userGens.length > 0) {
+        setGenerations((prev) => {
+          const existingIds = new Set(userGens.map((g) => g.id));
+          const otherGens = prev.filter((g) => !existingIds.has(g.id));
+          return [...userGens, ...otherGens];
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser?.id, currentUser?.isGuest]);
+
   // Handler for Start Creating action (auth-gated)
   const handleStartCreate = () => {
     if (currentUser.isGuest || !currentUser.email) {
@@ -84,8 +122,9 @@ export default function App() {
   };
 
   // Handle Sign Out
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
+      await logoutFirebase();
       localStorage.removeItem('aura_user');
       localStorage.removeItem('aura_token');
     } catch (e) {
@@ -98,8 +137,9 @@ export default function App() {
   };
 
   // Handle Account Deletion Success
-  const handleDeleteAccountSuccess = () => {
+  const handleDeleteAccountSuccess = async () => {
     try {
+      await logoutFirebase();
       localStorage.removeItem('aura_user');
       localStorage.removeItem('aura_token');
     } catch (e) {
@@ -132,6 +172,13 @@ export default function App() {
       ...prev,
       creationsCount: (prev.creationsCount || 0) + 1,
     }));
+
+    // Persist real-time to Cloud Firestore
+    if (currentUser && !currentUser.isGuest && currentUser.id) {
+      saveGenerationToFirestore(newGen, currentUser.id).catch((err) => {
+        console.warn('Could not sync creation to Firestore:', err);
+      });
+    }
   };
 
   // Toggle favorite
