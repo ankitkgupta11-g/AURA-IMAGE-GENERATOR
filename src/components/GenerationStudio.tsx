@@ -21,8 +21,10 @@ import {
   Layers,
   ZoomIn,
   LogIn,
+  Eraser,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { safeParseJson } from '../lib/apiUtils';
 
 interface GenerationStudioProps {
   currentUser: UserProfile;
@@ -69,6 +71,8 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
   const [isUpscaled, setIsUpscaled] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [isCleaningWatermark, setIsCleaningWatermark] = useState(false);
+  const [isWatermarkCleaned, setIsWatermarkCleaned] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -95,8 +99,9 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, style: selectedStyle }),
       });
-      const data = await res.json();
-      if (data.success && data.data?.enhancedPrompt) {
+      const parsed = await safeParseJson(res);
+      const data = parsed.data;
+      if (data && data.success && data.data?.enhancedPrompt) {
         setEnhancedPrompt(data.data.enhancedPrompt);
         setShowEnhancementComparison(true);
       }
@@ -142,6 +147,7 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
     setErrorMsg(null);
     setGenerationStage(0);
     setIsUpscaled(false);
+    setIsWatermarkCleaned(false);
 
     // Multi-stage visual progress simulator
     const stageTimer1 = setTimeout(() => setGenerationStage(1), 1200);
@@ -169,10 +175,11 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
         body: JSON.stringify(payload),
       });
 
-      const json = await res.json();
+      const parsed = await safeParseJson(res);
+      const json = parsed.data;
 
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Generation failed. Please try again.');
+      if (!parsed.ok || !json || !json.success) {
+        throw new Error(json?.error || parsed.error || 'Generation failed. Please try again.');
       }
 
       if (json.quotaNotice) {
@@ -227,16 +234,19 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: currentGeneration.id }),
       });
-      const data = await res.json();
-      if (data.quotaNotice) {
+      const parsed = await safeParseJson(res);
+      const data = parsed.data;
+      if (data?.quotaNotice) {
         setQuotaNotice(data.quotaNotice);
       }
-      if (data.success && data.data) {
+      if (data && data.success && data.data) {
         const newGen = data.data;
         setCurrentGeneration(newGen);
         setGeneratedBatch([newGen, ...generatedBatch]);
         setSelectedBatchIndex(0);
         onGenerationCreated(newGen);
+      } else if (!parsed.ok || data?.error) {
+        setErrorMsg(data?.error || parsed.error || 'Failed to create variation.');
       }
     } catch (err) {
       console.error('Variation error:', err);
@@ -286,15 +296,80 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
     }
   };
 
-  // Download image
-  const handleDownload = () => {
+  // Clean & Remove Watermark Handler (Canvas smart trim of edge watermark banner)
+  const handleCleanWatermark = async () => {
+    if (!currentGeneration || isCleaningWatermark) return;
+    setIsCleaningWatermark(true);
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = currentGeneration.imageUrl;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not available');
+
+      // Seamlessly trim bottom 3.8% where logos/watermarks appear, keeping full resolution and crisp sharpness
+      const cropBottomRatio = 0.038;
+      const targetHeight = Math.floor(img.height * (1 - cropBottomRatio));
+      canvas.width = img.width;
+      canvas.height = targetHeight;
+
+      ctx.drawImage(img, 0, 0, img.width, targetHeight, 0, 0, img.width, targetHeight);
+      const cleanDataUrl = canvas.toDataURL('image/png');
+
+      const updated = {
+        ...currentGeneration,
+        imageUrl: cleanDataUrl,
+      };
+      setCurrentGeneration(updated);
+      setIsWatermarkCleaned(true);
+
+      confetti({
+        particleCount: 30,
+        spread: 50,
+        origin: { y: 0.8 },
+        colors: ['#10b981', '#34d399', '#ffffff'],
+      });
+    } catch (err) {
+      console.warn('Watermark removal notice:', err);
+    } finally {
+      setIsCleaningWatermark(false);
+    }
+  };
+
+  // Download image cleanly
+  const handleDownload = async () => {
     if (!currentGeneration) return;
-    const link = document.createElement('a');
-    link.href = currentGeneration.imageUrl;
-    link.download = `aura-${currentGeneration.style.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      if (currentGeneration.imageUrl.startsWith('data:')) {
+        const link = document.createElement('a');
+        link.href = currentGeneration.imageUrl;
+        link.download = `aura-${currentGeneration.style.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+
+      // Fetch blob to ensure clean direct file download without opening browser tab
+      const res = await fetch(currentGeneration.imageUrl);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `aura-${currentGeneration.style.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(currentGeneration.imageUrl, '_blank');
+    }
   };
 
   // File picker handler for Image-to-Image
@@ -552,6 +627,20 @@ export const GenerationStudio: React.FC<GenerationStudioProps> = ({
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
                   <span>{isUpscaled ? 'Upscaled (2X)' : 'Upscale'}</span>
+                </button>
+
+                <button
+                  onClick={handleCleanWatermark}
+                  disabled={isCleaningWatermark}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
+                    isWatermarkCleaned
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                      : 'bg-[#faf9f6] border-[#dedad0] text-[#485161] hover:bg-[#f3f1ec]'
+                  }`}
+                  title="Remove corner watermark or logo cleanly"
+                >
+                  <Eraser className="w-3.5 h-3.5" />
+                  <span>{isWatermarkCleaned ? 'Watermark Cleaned ✓' : isCleaningWatermark ? 'Cleaning...' : 'Clean Watermark'}</span>
                 </button>
               </div>
 

@@ -13,6 +13,7 @@ import {
   ZoomIn,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { safeParseJson } from '../lib/apiUtils';
 
 interface InpaintModalProps {
   isOpen: boolean;
@@ -185,9 +186,10 @@ export const InpaintModal: React.FC<InpaintModalProps> = ({
         }),
       });
 
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Failed to synthesize inpainting modification.');
+      const parsed = await safeParseJson(res);
+      const json = parsed.data;
+      if (!parsed.ok || !json || !json.success) {
+        throw new Error(json?.error || parsed.error || 'Failed to synthesize inpainting modification.');
       }
 
       confetti({

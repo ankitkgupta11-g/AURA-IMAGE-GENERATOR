@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { AlertTriangle, Trash2, X, ShieldAlert } from 'lucide-react';
+import { safeParseJson } from '../lib/apiUtils';
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
@@ -38,9 +39,10 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
         },
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to delete account. Please try again.');
+      const parsed = await safeParseJson(res);
+      const data = parsed.data;
+      if (!parsed.ok || !data || !data.success) {
+        throw new Error(data?.error || parsed.error || 'Failed to delete account. Please try again.');
       }
 
       onAccountDeleted();

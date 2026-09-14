@@ -28,6 +28,14 @@ const currentDir = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 const app = express();
 const PORT = 3000;
 
+// Prevent background unhandled rejections from crashing the server
+process.on('unhandledRejection', (reason) => {
+  console.warn('[Server] Handled background rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[Server] Handled uncaught exception:', err);
+});
+
 // Increase payload limits for image-to-image uploads (base64)
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
@@ -195,11 +203,6 @@ function getGeminiClient(): GoogleGenAI | null {
   }
   return new GoogleGenAI({
     apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
   });
 }
 
@@ -557,44 +560,68 @@ app.post('/api/enhance-prompt', async (req, res) => {
       });
     }
 
-    const systemPrompt = `You are a world-class creative director, visual artist, and master prompt engineer for state-of-the-art AI image generation models.
-Your task is to take the user's raw prompt and transform it into a vivid, descriptive, photographic or artistic masterpiece prompt.
-Guidelines:
-- Describe the subject, lighting, mood, color palette, camera/lens characteristics, composition, and physical textures.
-- Avoid generic buzzwords like "hyperrealistic", "trending on artstation", "photorealistic 8k unreal engine". Instead, use concrete technical photography/art terminology (e.g. "diffuse directional sunlight", "subtle volumetric haze", "shallow depth of field", "35mm prime lens", "tactile matte surface", "chiaroscuro shadows").
-- Match the specified style: ${style || 'Cinematic / Photographic'}.
-- Output ONLY the expanded prompt text, nothing else. No preamble, no quotes, no commentary.`;
+    const systemPrompt = `You are a world-class visual creative director and prompt engineer for state-of-the-art AI image generation models.
+Your task is to take the user's raw prompt and expand it into a visually precise, accurate, and vivid image generation prompt.
+Crucial Rules:
+1. FOCUS ON THE ACTUAL PHYSICAL SUBJECT: Accurately describe the subject's anatomy, shape, real-world appearance, colors, surfaces, textures, and natural context (e.g. for a "green mango", describe an oblong kidney-shaped raw mango with smooth waxy emerald green skin, natural bloom, fresh stem, attached green mango tree leaves, on a rustic wooden table under crisp natural window lighting).
+2. NEVER output generic boilerplate phrases or empty buzzwords like "A masterfully styled composition of...", "featuring Cinematic aesthetic", "balanced spatial depth", "volumetric atmospheric lighting", "8K ultra polish", "trending on artstation". These confuse image models and ruin the output.
+3. Describe specific lighting (e.g., "warm morning sunlight catching the waxy skin", "soft studio key light"), exact camera perspective (e.g., "macro close-up with shallow depth of field", "eye-level medium shot"), and natural organic details.
+4. Reflect the user's chosen style: ${style || 'Photorealistic / Natural'}.
+5. Output ONLY the descriptive prompt text. Do not include quotes, greetings, or explanations.`;
 
-    let response: any = null;
-    try {
-      const geminiCall = ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-        config: {
-          systemInstruction: systemPrompt,
-          temperature: 0.7,
-        },
-      });
-      const timeoutCall = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
-      response = await Promise.race([geminiCall, timeoutCall]);
-    } catch (primaryErr) {
-      // Ignored, falls through to response check
+    let responseText: string | null = null;
+    let successfulModel: string | null = null;
+
+    // Resilient multi-model sequence: fast flash lite first, then flash latest and 3.8-flash
+    const candidateModels = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'];
+    for (const candidateModel of candidateModels) {
+      try {
+        const geminiCall = ai.models
+          .generateContent({
+            model: candidateModel,
+            contents: prompt,
+            config: {
+              systemInstruction: systemPrompt,
+              temperature: 0.7,
+            },
+          })
+          .catch((err: any) => {
+            const msg = err?.message || String(err);
+            if (msg.includes('503') || msg.includes('high demand') || msg.includes('UNAVAILABLE')) {
+              console.log(`[Gemini Prompt Enhance] Model ${candidateModel} currently experiencing high demand (503), switching to fallback...`);
+            } else {
+              console.warn(`[Gemini Prompt Enhance Notice] (${candidateModel}):`, msg.slice(0, 150));
+            }
+            return null;
+          });
+
+        const timeoutCall = new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000));
+        const candidateResp: any = await Promise.race([geminiCall, timeoutCall]);
+
+        if (candidateResp?.text?.trim()) {
+          responseText = candidateResp.text.trim();
+          successfulModel = candidateModel;
+          break;
+        }
+      } catch (candidateErr: any) {
+        console.log(`[Gemini Prompt Enhance] Switching from ${candidateModel} due to transient delay.`);
+      }
     }
 
-    const enhancedText = response?.text?.trim() || `A masterfully styled composition of ${prompt.trim()}, featuring ${style || 'cinematic'} aesthetic, balanced spatial depth, volumetric atmospheric lighting, natural micro-textures, 8K ultra polish.`;
+    const enhancedText = responseText || `${prompt.trim()}, highly detailed authentic textures, natural organic form and shape, beautiful directional lighting, crisp focal clarity, studio photography`;
 
     res.json({
       success: true,
       data: {
         originalPrompt: prompt,
         enhancedPrompt: enhancedText,
-        provider: response?.text ? 'Google Gemini 3.6 Flash Director' : 'Aura Neural Director'
+        provider: successfulModel ? `Google Gemini (${successfulModel})` : 'Aura Neural Director'
       }
     });
   } catch (err: any) {
     console.error('Prompt enhancement error:', err);
     // Graceful fallback
-    const fallback = `A masterfully crafted composition of ${req.body.prompt}, featuring dramatic ${req.body.style || 'cinematic'} illumination, rich tonal contrast, natural depth of field, authentic material textures, ultra-clean spatial composition.`;
+    const fallback = `${req.body.prompt ? req.body.prompt.trim() : 'artistic creation'}, natural true-to-life details, realistic texture and lighting, rich color fidelity, clean composition`;
     res.json({
       success: true,
       data: {
@@ -668,17 +695,25 @@ app.post('/api/generate', async (req, res) => {
 
         const mappedAspect = ['1:1', '3:4', '4:3', '9:16', '16:9'].includes(aspectRatio) ? aspectRatio : '1:1';
 
-        const geminiImageCall = ai.models.generateContent({
-          model: 'gemini-3.1-flash-image',
-          contents: { parts },
-          config: {
-            imageConfig: {
-              aspectRatio: mappedAspect as any,
-              imageSize: quality === 'Ultra' ? '2K' : '1K',
+        const geminiImageCall = ai.models
+          .generateContent({
+            model: 'gemini-3.1-flash-image',
+            contents: { parts },
+            config: {
+              imageConfig: {
+                aspectRatio: mappedAspect as any,
+                imageSize: quality === 'Ultra' ? '2K' : '1K',
+              },
             },
-          },
-        });
-        const timeoutCall = new Promise<null>((resolve) => setTimeout(() => resolve(null), 4500));
+          })
+          .catch((err) => {
+            const errMsg = err?.message || String(err);
+            if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+              isQuotaFallback = true;
+            }
+            return null;
+          });
+        const timeoutCall = new Promise<null>((resolve) => setTimeout(() => resolve(null), 30000));
         const response: any = await Promise.race([geminiImageCall, timeoutCall]);
 
         if (response?.candidates?.[0]?.content?.parts) {
@@ -702,10 +737,28 @@ app.post('/api/generate', async (req, res) => {
 
     // If Gemini image model was unavailable or quota limit reached, synthesize dynamic images from prompt using Neural Engine
     if (generatedImageUrls.length === 0) {
+      let cleanPrompt = effectivePrompt.replace(/,\s*(masterpiece|ultra detailed|8k|photorealistic|hyperrealistic)/gi, '').trim();
+
+      // Universal negative quality filter for ALL subjects (preventing watermarks, text, signatures, logos)
+      const universalQualityNegatives = 'watermark, logo, text, letters, font, signature, copyright, trademark, brand mark, stamp, stock photo watermark, url, text overlay, blurry, distorted, deformed anatomy, bad proportions, extra limbs, low quality, artifacts, pixelated, duplicate';
+      let effectiveNegative = (negativePrompt || '').trim();
+      effectiveNegative = effectiveNegative ? `${effectiveNegative}, ${universalQualityNegatives}` : universalQualityNegatives;
+
+      // Subject-specific clarity enhancement for lightweight fallback models
+      if (/\b(mango|kairi|aam|mangifera)\b/i.test(effectivePrompt)) {
+        const antiAppleNegative = 'apple, green apple, round ball, spherical, circular fruit, pumpkin, orange, tomato, pear, center stem on top, apple core';
+        effectiveNegative = `${effectiveNegative}, ${antiAppleNegative}`;
+        if (!/oblong|kidney|beak|elongated|kairi|sliced/i.test(cleanPrompt)) {
+          cleanPrompt = `${cleanPrompt}, elongated oblong kidney-shaped raw mango fruit, curved tapered beak tip, authentic raw green kairi`;
+        }
+      }
+
+      const negParam = effectiveNegative ? `&negative=${encodeURIComponent(effectiveNegative)}` : '';
+
       for (let i = 0; i < count; i++) {
         const seed = Math.floor(Math.random() * 8999999) + 1000000;
-        const promptParam = encodeURIComponent(`${effectivePrompt.trim()}${style ? `, ${style} style` : ''}, masterpiece, ultra detailed, 8k`);
-        const neuralUrl = `https://image.pollinations.ai/prompt/${promptParam}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+        const promptParam = encodeURIComponent(`${cleanPrompt}${style ? `, in ${style} style` : ''}, high resolution, natural lighting, sharp focus, clean image without text or watermark`);
+        const neuralUrl = `https://image.pollinations.ai/prompt/${promptParam}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=false&nofeed=true${negParam}`;
         generatedImageUrls.push(neuralUrl);
       }
     }
@@ -827,8 +880,8 @@ app.post('/api/variation', async (req, res) => {
       else if (aspectStr === '3:4') { width = 768; height = 1024; }
 
       const seed = Math.floor(Math.random() * 8999999) + 1000000;
-      const varPromptParam = encodeURIComponent(`${original.prompt} variation, alternative angle, ${original.style} style, dynamic lighting`);
-      variationImg = `https://image.pollinations.ai/prompt/${varPromptParam}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+      const varPromptParam = encodeURIComponent(`${original.prompt} variation, alternative angle, ${original.style} style, dynamic lighting, clean image without text or watermark`);
+      variationImg = `https://image.pollinations.ai/prompt/${varPromptParam}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=false&nofeed=true&negative=watermark%2C%20logo%2C%20text%2C%20signature`;
     }
 
     const varId = 'gen-' + Date.now() + '-var';
@@ -906,16 +959,18 @@ app.post('/api/inpaint', async (req, res) => {
           text: `Inpainting task: modify the masked portion of the image. Desired modification: ${inpaintPrompt.trim()}, styled in ${style} aesthetic, seamless edge blending and natural ambient lighting match.`,
         });
 
-        const call = ai.models.generateContent({
-          model: 'gemini-3.1-flash-image',
-          contents: { parts },
-          config: {
-            imageConfig: {
-              aspectRatio: (['1:1', '3:4', '4:3', '9:16', '16:9'].includes(aspectRatio) ? aspectRatio : '1:1') as any,
-              imageSize: '2K',
+        const call = ai.models
+          .generateContent({
+            model: 'gemini-3.1-flash-image',
+            contents: { parts },
+            config: {
+              imageConfig: {
+                aspectRatio: (['1:1', '3:4', '4:3', '9:16', '16:9'].includes(aspectRatio) ? aspectRatio : '1:1') as any,
+                imageSize: '2K',
+              },
             },
-          },
-        });
+          })
+          .catch(() => null);
         const timeoutCall = new Promise<null>((resolve) => setTimeout(() => resolve(null), 4500));
         const response: any = await Promise.race([call, timeoutCall]);
 
@@ -937,8 +992,8 @@ app.post('/api/inpaint', async (req, res) => {
     // High-fidelity neural inpaint synthesis fallback
     if (!inpaintedImgUrl) {
       const seed = Math.floor(Math.random() * 8999999) + 1000000;
-      const combinedPrompt = encodeURIComponent(`selective modification, ${inpaintPrompt.trim()}, in ${style} aesthetic, photorealistic, perfect lighting balance, 8k resolution`);
-      inpaintedImgUrl = `https://image.pollinations.ai/prompt/${combinedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+      const combinedPrompt = encodeURIComponent(`selective modification, ${inpaintPrompt.trim()}, in ${style} aesthetic, photorealistic, perfect lighting balance, 8k resolution, clean image without watermark`);
+      inpaintedImgUrl = `https://image.pollinations.ai/prompt/${combinedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=false&nofeed=true&negative=watermark%2C%20logo%2C%20text%2C%20signature`;
     }
 
     const newGen: any = {
@@ -1226,6 +1281,24 @@ app.get('/api/stats', async (req, res) => {
 async function startServer() {
   // Initialize Neon database if DATABASE_URL is set (or prepare local storage)
   await initDatabase();
+
+  // Explicit 404 for unmatched API routes so they return JSON, never HTML
+  app.all('/api/*', (req, res) => {
+    res.status(404).json({ success: false, error: `API route not found: ${req.method} ${req.originalUrl}` });
+  });
+
+  // Global error-handling middleware for Express
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (req.path.startsWith('/api/')) {
+      console.error('[API Server Error]', err);
+      res.status(err.status || 500).json({
+        success: false,
+        error: err.message || 'Internal server error occurred.',
+      });
+      return;
+    }
+    next(err);
+  });
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

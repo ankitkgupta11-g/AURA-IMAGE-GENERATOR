@@ -19,6 +19,7 @@ import {
   logoutFirebase, 
   saveGenerationToFirestore 
 } from './lib/authService';
+import { safeParseJson } from './lib/apiUtils';
 
 const GUEST_USER: UserProfile = {
   id: 'guest',
@@ -64,11 +65,10 @@ export default function App() {
     const fetchGallery = async () => {
       try {
         const res = await fetch('/api/gallery');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-            setGenerations(json.data);
-          }
+        const parsed = await safeParseJson(res);
+        const json = parsed.data;
+        if (parsed.ok && json && json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setGenerations(json.data);
         }
       } catch (err) {
         console.warn('Using local curated collection:', err);

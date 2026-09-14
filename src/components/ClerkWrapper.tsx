@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { ClerkProvider, useUser, useClerk } from '@clerk/clerk-react';
 import { CLERK_PUBLISHABLE_KEY, isClerkConfigured } from '../lib/clerkConfig';
 import { UserProfile } from '../types';
+import { safeParseJson } from '../lib/apiUtils';
 
 interface ClerkWrapperProps {
   children: React.ReactNode;
@@ -59,18 +60,17 @@ const ClerkSyncBridgeInner: React.FC<ClerkSyncProps> = ({
             }),
           });
 
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.data) {
-              const fullProfile: UserProfile = {
-                ...data.data,
-                id: user.id, // Keep Clerk user id
-                provider: 'clerk',
-                isGuest: false,
-              };
-              onSyncUser(fullProfile);
-              return;
-            }
+          const parsed = await safeParseJson(res);
+          const data = parsed.data;
+          if (parsed.ok && data && data.success && data.data) {
+            const fullProfile: UserProfile = {
+              ...data.data,
+              id: user.id, // Keep Clerk user id
+              provider: 'clerk',
+              isGuest: false,
+            };
+            onSyncUser(fullProfile);
+            return;
           }
         } catch (err) {
           console.warn('Could not sync Clerk user with backend database:', err);

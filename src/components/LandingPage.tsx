@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Hero3DCanvas } from './Hero3DCanvas';
 import { Generation, ActiveTab } from '../types';
 import { Sparkles, ArrowRight, Wand2, Eye, Compass, Cpu, Sliders, Shield, Copy, Check, PenTool, Layers, Share2 } from 'lucide-react';
+import { safeParseJson } from '../lib/apiUtils';
 
 interface LandingPageProps {
   setActiveTab: (tab: ActiveTab) => void;
@@ -42,8 +43,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: text, style: 'Cinematic' }),
       });
-      const data = await res.json();
-      if (data.success && data.data?.enhancedPrompt) {
+      const parsed = await safeParseJson(res);
+      const data = parsed.data;
+      if (data && data.success && data.data?.enhancedPrompt) {
         setDemoEnhanced(data.data.enhancedPrompt);
       }
     } catch (e) {
